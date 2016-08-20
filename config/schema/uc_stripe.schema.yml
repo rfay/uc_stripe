@@ -1,0 +1,16 @@
+uc_stripe.settings:
+  type: mapping
+  label: Settings
+  mapping:
+    uc_stripe_testmode:
+      type: boolean
+    uc_stripe_api_key_test_publishable:
+      type: string
+    uc_stripe_api_key_live_publishable:
+      type: string
+    uc_stripe_api_key_test_secret:
+      type: string
+    uc_stripe_api_key_live_secret:
+      type: string
+    uc_stripe_poweredby:
+      type: boolean
