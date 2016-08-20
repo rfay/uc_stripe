@@ -10,8 +10,8 @@
     attach: function (context) {
       var submitButton = $('.uc-cart-checkout-form #edit-continue');
 
-      var cc_container = $('.payment-details-credit');
-      var cc_num = cc_container.find(':input[id*="edit-panes-payment-details-cc-numbe"]');
+      var cc_container = $('.payment-details-stripe-gateway');
+      var cc_num = cc_container.find(':input[data-drupal-selector*="edit-panes-payment-details-cc-numbe"]');
       var cc_cvv = cc_container.find(':input[id*="edit-panes-payment-details-cc-cv"]');
 
       // Make sure that when the page is being loaded the token value is reset
@@ -26,7 +26,6 @@
       // When this behavior fires, we can clean the form so it will behave properly,
       // Remove 'name' from sensitive form elements so there's no way they can be submitted.
       cc_num.removeAttr('name').removeAttr('disabled');
-      $('div.form-item-panes-payment-details-cc-number').removeClass('form-disabled');
       cc_cvv.removeAttr('name').removeAttr('disabled');
       var cc_val_val = cc_num.val();
       if (cc_val_val && cc_val_val.indexOf('Last 4')) {

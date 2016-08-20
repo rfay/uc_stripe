@@ -100,6 +100,17 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   protected function chargeCard(OrderInterface $order, $amount, $txn_type, $reference = NULL) {
     $user = \Drupal::currentUser();
 
+    if (!_uc_stripe_prepare_api()) {
+      $result = array(
+        'success' => FALSE,
+        'comment' => t('Stripe API not found.'),
+        'message' => t('Stripe API not found. Contact the site administrator.'),
+        'uid' => $user->id(),
+        'order_id' => $order->id(),
+      );
+      return $result;
+    }
+
     // Format the amount in cents, which is what Stripe wants
     $amount = uc_currency_format($amount, FALSE, FALSE, FALSE);
 
@@ -109,8 +120,8 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     // (like if an admin is processing an order on someone's behalf)
     // then load the customer ID from the user object.
     // Otherwise, make a brand new customer each time a user checks out.
-    if ($user->uid != $order->uid) {
-      $stripe_customer_id = _uc_stripe_get_customer_id($order->uid);
+    if ($user->id() != $order->id()) {
+      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
     }
 
 
@@ -120,22 +131,23 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
       try {
         // If the token is not in the user's session, we can't set up a new customer
-        if (empty($_SESSION['stripe']['token'])) {
-          throw new Exception('Token not found');
+        $stripe_token = \Drupal::service('user.private_tempstore')->get('uc_stripe')->get('uc_stripe_token');
+
+        if (empty($stripe_token)) {
+          throw new \Exception('Token not found');
         }
-        $stripe_token = $_SESSION['stripe']['token'];
 
         //Create the customer in stripe
         $customer = \Stripe\Customer::create(array(
             "source" => $stripe_token,
-            'description' => "OrderID: {$order->order_id}",
-            'email' => "$order->primary_email"
+            'description' => "OrderID: {$order->id()}",
+            'email' => $order->getEmail(),
           )
         );
 
-        // Store the customer ID in the session,
+        // Store the customer ID in temp storage,
         // We'll pick it up later to save it in the database since we might not have a $user object at this point anyway
-        $stripe_customer_id = $_SESSION['stripe']['customer_id'] = $customer->id;
+        \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_customer_id', $customer->id());
 
       } catch (Exception $e) {
         $result = array(
@@ -149,7 +161,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
           'order_id' => $order->id(),
         );
 
-        uc_order_comment_save($order->id(), $user->uid, $result['message'], 'admin');
+        uc_order_comment_save($order->id(), $user->id(), $result['message']);
 
         \Drupal::logger('uc_stripe')
           ->notice('Failed stripe customer creation: @message', array('@message' => $result['message']));

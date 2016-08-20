@@ -5,6 +5,8 @@
  * A stripe.js PCI-compliant payment gateway
  */
 
+use \Drupal\Core\Form\FormState;
+use \Drupal\user\Entity\User;
 
 /**
  * Implements hook_payment_gateway to register this payment gateway
@@ -89,10 +91,8 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, &$form_state) {
 
 
   // Add custom JS and CSS
-  $form['#attached']['js']['https://js.stripe.com/v2/'] = array('type' => 'external');
-  $form['#attached']['js'][] = array('data' => "Stripe.setPublishableKey('$apikey')", 'type' => 'inline');
-  $form['#attached']['js'][] = drupal_get_path('module', 'uc_stripe') . '/js/uc_stripe.js';
-  $form['#attached']['css'][] = drupal_get_path('module', 'uc_stripe') . '/css/uc_stripe.css';
+//  $form['#attached']['js'][] = array('data' => "Stripe.setPublishableKey('$apikey')", 'type' => 'inline');
+  $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
 
   // Add custom submit which will do saving away of token during submit.
   $form['#submit'][] = 'uc_stripe_checkout_form_customsubmit';
@@ -148,15 +148,12 @@ function uc_stripe_uc_order_pane() {
 function uc_stripe_uc_checkout_complete($order, $account) {
 
   if ($order->payment_method == "credit") {
-    // Pull the stripe customer ID from the session.
+    // Pull the stripe customer ID from the temp storage.
     // It got there in uc_stripe_checkout_form_customsubmit()
-    $stripe_customer_id = $_SESSION['stripe']['customer_id'];
 
-    $loaded_user = \Drupal::entityManager()->getStorage('user')->load($account->uid);
-    // @FIXME
-// user_save() is now a method of the user entity.
-// user_save($loaded_user, array('data' => array('uc_stripe_customer_id' => $stripe_customer_id)));
+    $stripe_customer_id = \Drupal::service('user.private_tempstore')->get('uc_stripe')->get('uc_stripe_customer_id');
 
+    \Drupal::getContainer('user.data')->set('uc_stripe', $account->id(), 'uc_stripe_customer_id', $stripe_customer_id);
   }
 }
 
@@ -176,7 +173,7 @@ function uc_stripe_uc_checkout_complete($order, $account) {
 function uc_stripe_order_pane_stripe($op, $order, &$form = NULL, &$form_state = NULL) {
   switch ($op) {
     case 'view':
-      $stripe_customer_id = _uc_stripe_get_customer_id($order->uid);
+      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
       $output = t("Customer ID: ") . $stripe_customer_id;
       return array('#markup' => $output);
     default:
@@ -247,15 +244,16 @@ function _uc_stripe_validate_key($key) {
  * Custom submit function to store the stripe token
  *
  * Since we don't have a user account at this step, we're going to store the token
- * in the session. We'll grab the token in the charge callback and use it to charge
+ * in private_tempstore. We'll grab the token in the charge callback and use it to charge
  *
  * @param $form
  * @param $form_state
  */
-function uc_stripe_checkout_form_customsubmit($form, &$form_state) {
+function uc_stripe_checkout_form_customsubmit($form, FormState $form_state) {
   // This submit may be entered on another payment type, so don't set session in that case.
-  if (!empty($form_state['values']['panes']['payment']['details']['stripe_token'])) {
-    $_SESSION['stripe']['token'] = $form_state['values']['panes']['payment']['details']['stripe_token'];
+  $stripe_token_val = $form_state->getValue(['panes', 'payment', 'details', 'stripe_token']);
+  if (!empty($stripe_token_val)) {
+    \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_token', $stripe_token_val);
   }
 }
 
@@ -281,7 +279,7 @@ function uc_stripe_checkout_form_customsubmit($form, &$form_state) {
 //    _uc_stripe_prepare_api();
 //
 //    //Get the customer ID
-//    $stripe_customer_id = _uc_stripe_get_customer_id($order->uid);
+//    $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
 //
 //    if (empty($stripe_customer_id)) {
 //      throw new Exception('No stripe customer ID found');
@@ -300,7 +298,7 @@ function uc_stripe_checkout_form_customsubmit($form, &$form_state) {
 //    );
 //
 //
-//    uc_payment_enter($order->order_id, $order->payment_method, $order->order_total, $fee->uid, $charge, "Success");
+//    uc_payment_enter($order->order_id, $order->payment_method, $order->order_total, $fee->id(), $charge, "Success");
 //
 //    $formatted_amount = number_format($fee->fee_amount, 2);
 //    $message = t('Card renewal payment of @amount processed successfully.', array('@amount' => $formatted_amount));
@@ -405,9 +403,10 @@ function _uc_stripe_check_api_keys() {
  */
 function _uc_stripe_get_customer_id($uid) {
 
-  $account = \Drupal::entityManager()->getStorage('user')->load($uid);
+  /** @var \Drupal\user\UserDataInterface $userdata_container */
+  $userdata_container = \Drupal::getContainer('user.data');
 
-  $id = !empty($account->data['uc_stripe_customer_id']) ? $account->data['uc_stripe_customer_id'] : FALSE;
+  $id = $userdata_container->get('uc_stripe', $uid, 'uc_stripe_customer_id');
   return $id;
 }
 
