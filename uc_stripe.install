@@ -20,7 +20,7 @@ function uc_stripe_requirements($phase) {
   $version_is_ok = version_compare($php_api_version, $required_version, 'ge');
 
   $requirements['uc_stripe_api'] = array(
-    'title' => t('Stripe PHP Library'),
+    'title' => t('Stripe PHP Library for Ubercart Stripe'),
     'value' => t('Version @version', ['@version' => $php_api_version]),
     'description' => t('Stripe PHP Library is installed'),
   );
