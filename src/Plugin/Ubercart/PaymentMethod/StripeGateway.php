@@ -98,7 +98,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    * @param $key
    * @return boolean
    */
-  public function validateKey($key) {
+  static public function validateKey($key) {
     $valid = preg_match('/^[a-zA-Z0-9_]+$/', $key);
     return $valid;
   }
@@ -205,27 +205,6 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   }
 
 
-  public function cartDetails(OrderInterface $order, array $form, FormStateInterface $form_state) {
-    $build = parent::cartDetails($order, $form, $form_state);
-
-//    $build['stripe_nojs_warning'] = $form['stripe_nojs_warning'];
-//    $build['config_error'] = $form['config_error'];
-//    $build['stripe_token'] = $form['stripe_token'];
-//    $build['dummy_image_load'] = $form['dummy_image_load'];
-
-//    $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
-//    $output .= \Drupal::service("renderer")->render($form['config_error']);
-//
-//    $output .= \Drupal::service("renderer")->render($form['stripe_token']);
-//    $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
-
-    // TODO: Add render stuff for stripe_token/nojs_warning/dummy image
-
-    return $build;
-
-  }
-
-
   /**
    * Utility function: Load stripe API
    *
@@ -233,7 +212,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    */
   public function prepareApi() {
 
-    if (!$this->checkApiKeys()) {
+    if (!_uc_stripe_check_api_keys()) {
       \Drupal::logger('uc_stripe')->error('Stripe API keys are not configured. Payments cannot be made without them.', array());
       return FALSE;
     }
@@ -247,19 +226,6 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     return TRUE;
   }
 
-  /**
-   * Check that all API keys are configured.
-   *
-   * @return bool
-   *   TRUE if all 4 keys have a value.
-   */
-  public function checkApiKeys() {
-
-    return ($this->configuration['uc_stripe_api_key_live_publishable'] &&
-      $this->configuration['uc_stripe_api_key_live_secret'] &&
-      $this->configuration['uc_stripe_api_key_test_publishable'] &&
-      $this->configuration['uc_stripe_api_key_test_secret']);
-  }
 
   protected function validateCardNumber($number) {
     // Do nothing - let Stripe validate the number

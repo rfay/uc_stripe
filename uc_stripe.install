@@ -11,45 +11,38 @@
  */
 function uc_stripe_requirements($phase) {
 
+  $required_version = '3.20.0';
+
+  $php_api_version = "";
   if (class_exists('\Stripe\Stripe')) {
     $php_api_version = \Stripe\Stripe::VERSION;
   }
+  $version_is_ok = version_compare($php_api_version, $required_version, 'ge');
+
   $requirements['uc_stripe_api'] = array(
     'title' => t('Stripe PHP Library'),
-    'value' => t('Version !version', array('!version' => $php_api_version)),
+    'value' => t('Version @version', ['@version' => $php_api_version]),
+    'description' => t('Stripe PHP Library is installed'),
   );
 
   $requirements['uc_stripe_api']['value'] = !empty($php_api_version) ? $php_api_version : t('Not Installed');
-  $requirements['uc_stripe_api']['severity'] = !empty($php_api_version) ? REQUIREMENT_OK : REQUIREMENT_ERROR;
-  $requirements['uc_stripe_api']['description'] = empty($php_api_version) ? t('Please install Stripe PHP Library') : "Stripe PHP API library is installed";
+  $requirements['uc_stripe_api']['severity'] = $version_is_ok ? REQUIREMENT_OK : REQUIREMENT_ERROR;
+  if (!$version_is_ok) {
+    $requirements['uc_stripe_api']['description'] = $version_is_ok ? t('Please install Stripe PHP Library') : t("Stripe PHP API library is not recent enough. Version needs to be @version or higher", ['@version' => $required_version]);
+  }
 
 
   $requirements['uc_stripe_keys'] = array(
     'title' => t('Stripe API Keys'),
     'value' => t('Configured'),
   );
-  // TODO: Return here when we figure out how to get api keys externally
-//  if ($phase == 'runtime' && !_uc_stripe_check_api_keys()) {
-//    $requirements['uc_stripe_keys']['title'] = t('Stripe API Keys.');
-//    $requirements['uc_stripe_keys']['value'] = t('Not configured');
-//    $requirements['uc_stripe_keys']['severity'] = REQUIREMENT_ERROR;
-//    $requirements['uc_stripe_keys']['description'] = t('The Stripe API keys are not fully configured.');
-//  }
 
-  // Make sure they don't enable the "Check credit"
-  // @FIXME
-// // @FIXME
-// // This looks like another module's variable. You'll need to rewrite this call
-// // to ensure that it uses the correct configuration object.
-// if ($phase == 'runtime' && variable_get('uc_credit_validate_numbers', FALSE)) {
-//     $requirements['uc_stripe_validate_numbers'] = array(
-//       'title' => t('Stripe Credit Card Validation'),
-//       'value' => t('Enabled'),
-//       'severity' => REQUIREMENT_ERROR,
-//       'description' => t("uc_credit's 'Validate credit card numbers at checkout' option must be disabled when using uc_stripe, as uc_credit never sees the card number."),
-//     );
-//   }
-
+  if ($phase == 'runtime' && !_uc_stripe_check_api_keys()) {
+    $requirements['uc_stripe_keys']['title'] = t('Stripe API Keys.');
+    $requirements['uc_stripe_keys']['value'] = t('Not configured');
+    $requirements['uc_stripe_keys']['severity'] = REQUIREMENT_ERROR;
+    $requirements['uc_stripe_keys']['description'] = t('The Stripe API keys are not fully configured.');
+  }
 
   return $requirements;
 }
@@ -67,14 +60,5 @@ function uc_stripe_install() {
 // // This looks like another module's variable. You'll need to rewrite this call
 // // to ensure that it uses the correct configuration object.
 // variable_set('uc_recurring_trigger_renewals', TRUE);
-
-
-  // Stripe does cc validation, so uc_credit must not... especially because
-  // uc_credit gets a bogus cc number.
-  // @FIXME
-// // @FIXME
-// // This looks like another module's variable. You'll need to rewrite this call
-// // to ensure that it uses the correct configuration object.
-// variable_set('uc_credit_validate_numbers', FALSE);
 
 }

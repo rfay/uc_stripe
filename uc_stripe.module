@@ -119,6 +119,21 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
 //  }
 }
 
+/**
+ * Check that all API keys are configured.
+ *
+ * @return bool
+ *   TRUE if all 4 keys have a value.
+ */
+function _uc_stripe_check_api_keys() {
+
+  $config = \Drupal::config('uc_payment.method.stripe');
+
+  return $config->get('settings.uc_stripe_api_key_live_publishable') &&
+    $config->get('settings.uc_stripe_api_key_live_secret') &&
+    $config->get('settings.uc_stripe_api_key_test_publishable') &&
+    $config->get('settings.uc_stripe_api_key_test_secret');
+}
 
 /**
  * Implements hook_order_pane to provide the stripe customer info
