@@ -5,5 +5,6 @@ uc_stripe:
     js/uc_stripe.js: {}
   dependencies:
     - core/jquery
+    - core/drupalSettings
   css:
     css/name_of_the_css_file.css: {}

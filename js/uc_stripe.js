@@ -13,6 +13,8 @@
       var cc_container = $('.payment-details-stripe-gateway');
       var cc_num = cc_container.find(':input[data-drupal-selector*="edit-panes-payment-details-cc-numbe"]');
       var cc_cvv = cc_container.find(':input[id*="edit-panes-payment-details-cc-cv"]');
+      var apikey = drupalSettings.uc_stripe.publishable_key;
+      Stripe.setPublishableKey(apikey);
 
       // Make sure that when the page is being loaded the token value is reset
       // Browser or other caching might do otherwise.
@@ -27,6 +29,8 @@
       // Remove 'name' from sensitive form elements so there's no way they can be submitted.
       cc_num.removeAttr('name').removeAttr('disabled');
       cc_cvv.removeAttr('name').removeAttr('disabled');
+      $('.form-item-panes-payment-details-cc-number').removeClass('form-disabled');
+
       var cc_val_val = cc_num.val();
       if (cc_val_val && cc_val_val.indexOf('Last 4')) {
         cc_num.val('');
@@ -36,14 +40,14 @@
 
         // We must find the various fields again, because they may have been swapped
         // in by ajax action of the form.
-        cc_container = $('.payment-details-credit');
+        cc_container = $('.payment-details-stripe-gateway');
         cc_num = cc_container.find(':input[id*="edit-panes-payment-details-cc-numbe"]');
         cc_cvv = cc_container.find(':input[id*="edit-panes-payment-details-cc-cv"]');
 
         // If not credit card processing or no token field, just let the submit go on
         // Also continue if we've received the tokenValue
         var tokenField = $("[name='panes[payment][details][stripe_token]']");
-        if (!$("div.payment-details-credit").length || !tokenField.length || tokenField.val().indexOf('tok_') == 0) {
+        if (!cc_container.length || !tokenField.length || tokenField.val().indexOf('tok_') == 0) {
           return true;
         }
 

@@ -1,4 +1,4 @@
-uc_stripe.settings:
+payment_method.settings.uc_stripe:
   type: mapping
   label: Settings
   mapping:

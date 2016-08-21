@@ -28,12 +28,13 @@ function uc_stripe_requirements($phase) {
     'title' => t('Stripe API Keys'),
     'value' => t('Configured'),
   );
-  if ($phase == 'runtime' && !_uc_stripe_check_api_keys()) {
-    $requirements['uc_stripe_keys']['title'] = t('Stripe API Keys.');
-    $requirements['uc_stripe_keys']['value'] = t('Not configured');
-    $requirements['uc_stripe_keys']['severity'] = REQUIREMENT_ERROR;
-    $requirements['uc_stripe_keys']['description'] = t('The Stripe API keys are not fully configured.');
-  }
+  // TODO: Return here when we figure out how to get api keys externally
+//  if ($phase == 'runtime' && !_uc_stripe_check_api_keys()) {
+//    $requirements['uc_stripe_keys']['title'] = t('Stripe API Keys.');
+//    $requirements['uc_stripe_keys']['value'] = t('Not configured');
+//    $requirements['uc_stripe_keys']['severity'] = REQUIREMENT_ERROR;
+//    $requirements['uc_stripe_keys']['description'] = t('The Stripe API keys are not fully configured.');
+//  }
 
   // Make sure they don't enable the "Check credit"
   // @FIXME

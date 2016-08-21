@@ -87,12 +87,15 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, &$form_state) {
   }
   $form['actions']['continue']['#attributes']['disabled'] = 'disabled';
 
-  $apikey = \Drupal::config('uc_stripe.settings')->get('uc_stripe_testmode') ? \Drupal\Component\Utility\Html::escape(\Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_test_publishable')) : \Drupal\Component\Utility\Html::escape(\Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_live_publishable'));
+  $config = \Drupal::config('uc_payment.method.stripe');
+  $apikey = $config->get('settings.uc_stripe_testmode')
+    ? $config->get('settings.uc_stripe_api_key_test_publishable')
+    : $config->get('settings.uc_stripe_api_key_live_publishable');
 
 
   // Add custom JS and CSS
-//  $form['#attached']['js'][] = array('data' => "Stripe.setPublishableKey('$apikey')", 'type' => 'inline');
   $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
+  $form['#attached']['drupalSettings']['uc_stripe']['publishable_key'] = $apikey;
 
   // Add custom submit which will do saving away of token during submit.
   $form['#submit'][] = 'uc_stripe_checkout_form_customsubmit';
@@ -200,45 +203,9 @@ function uc_stripe_form_uc_payment_method_settings_form_alter(&$form, &$form_sta
  * @param $form_state
  */
 function uc_stripe_settings_form_validate($form, &$form_state) {
-  $elements = array('uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable', );
-
-  if ($form_state['values']['uc_pg_uc_stripe_enabled']) {
-    foreach ($elements as $element_name) {
-      $form_state['values'][$element_name] = _uc_stripe_sanitize_key($form_state['values'][$element_name]);
-      if (!_uc_stripe_validate_key($form_state['values'][$element_name])) {
-        form_set_error($element_name, t('@name does not appear to be a valid stripe key', array('@name' => $element_name)));
-      }
-    }
-  }
-
-  // Make sure they haven't tried to validate credit card numbers, as uc_stripe will not provide a real one.
-  if (!empty($form_state['values']['uc_credit_validate_numbers'])) {
-    form_set_error('uc_credit_validate_numbers', t('When used with Ubercart Stripe, "Validate credit card number at checkout" must be unchecked.'));
-  }
 
 }
 
-/**
- * Sanitize and strip whitespace from Stripe keys
- *
- * @param $key
- */
-function _uc_stripe_sanitize_key($key) {
-  $key = trim($key);
-  $key = \Drupal\Component\Utility\Html::escape($key);
-  return $key;
-}
-
-/**
- * Validate Stripe key
- *
- * @param $key
- * @return boolean
- */
-function _uc_stripe_validate_key($key) {
-  $valid = preg_match('/^[a-zA-Z0-9_]+$/', $key);
-  return $valid;
-}
 
 /**
  * Custom submit function to store the stripe token
@@ -256,7 +223,6 @@ function uc_stripe_checkout_form_customsubmit($form, FormState $form_state) {
     \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_token', $stripe_token_val);
   }
 }
-
 
 /**
  * TODO: Revisit this when uc_recurring is available.

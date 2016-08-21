@@ -69,6 +69,40 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     return $form;
   }
 
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+
+    $elements = ['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable'];
+
+    foreach ($elements as $element_name) {
+      $raw_key = $form_state->getValue(['settings', $element_name]);
+      $sanitized_key = $this->trimKey($raw_key);
+      $form_state->setValue(['settings', $element_name], $sanitized_key);
+      if (!$this->validateKey($form_state->getValue(['settings', $element_name]))) {
+        $form_state->setError($form[$element_name], t('@name does not appear to be a valid stripe key', array('@name' => $element_name)));
+      }
+    }
+
+    parent::validateConfigurationForm($form, $form_state);
+  }
+
+  protected function trimKey($key) {
+    $key = trim($key);
+    $key = \Drupal\Component\Utility\Html::escape($key);
+    return $key;
+  }
+
+
+  /**
+   * Validate Stripe key
+   *
+   * @param $key
+   * @return boolean
+   */
+  public function validateKey($key) {
+    $valid = preg_match('/^[a-zA-Z0-9_]+$/', $key);
+    return $valid;
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -106,7 +140,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     // (like if an admin is processing an order on someone's behalf)
     // then load the customer ID from the user object.
     // Otherwise, make a brand new customer each time a user checks out.
-    if ($user->id() != $order->id()) {
+    if ($user->id() != $order->getOwnerId()) {
       $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
     }
 
@@ -133,7 +167,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
         // Store the customer ID in temp storage,
         // We'll pick it up later to save it in the database since we might not have a $user object at this point anyway
-        \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_customer_id', $customer->id());
+        \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_customer_id', $customer->id);
 
       } catch (Exception $e) {
         $result = array(
@@ -172,7 +206,12 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
 
   public function cartDetails(OrderInterface $order, array $form, FormStateInterface $form_state) {
-    $details = parent::cartDetails($order, $form, $form_state);
+    $build = parent::cartDetails($order, $form, $form_state);
+
+//    $build['stripe_nojs_warning'] = $form['stripe_nojs_warning'];
+//    $build['config_error'] = $form['config_error'];
+//    $build['stripe_token'] = $form['stripe_token'];
+//    $build['dummy_image_load'] = $form['dummy_image_load'];
 
 //    $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
 //    $output .= \Drupal::service("renderer")->render($form['config_error']);
@@ -180,13 +219,15 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 //    $output .= \Drupal::service("renderer")->render($form['stripe_token']);
 //    $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
 
-    return $details;
+    // TODO: Add render stuff for stripe_token/nojs_warning/dummy image
+
+    return $build;
 
   }
 
 
   /**
-   * Load stripe API
+   * Utility function: Load stripe API
    *
    * @return bool
    */
@@ -219,4 +260,14 @@ class StripeGateway extends CreditCardPaymentMethodBase {
       $this->configuration['uc_stripe_api_key_test_publishable'] &&
       $this->configuration['uc_stripe_api_key_test_secret']);
   }
+
+  protected function validateCardNumber($number) {
+    // Do nothing - let Stripe validate the number
+  }
+
+  protected function validateCvv($cvv) {
+    // Do nothing - let Stripe validate the CVV
+  }
+
+
 }
