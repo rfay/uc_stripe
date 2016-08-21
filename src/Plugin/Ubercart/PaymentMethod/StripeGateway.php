@@ -17,71 +17,53 @@ use Drupal\uc_order\OrderInterface;
  */
 class StripeGateway extends CreditCardPaymentMethodBase {
 
-  /**
-   * {@inheritdoc}
-   */
-  public function defaultConfiguration() {
-    return parent::defaultConfiguration() + [
-      'debug' => FALSE,
-    ];
-  }
 
   /**
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-    $form['uc_stripe_settings'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Stripe settings'),
-    );
 
-    $form['uc_stripe_settings']['uc_stripe_api_key_test_secret'] = array(
+    $form['uc_stripe_api_key_test_secret'] = array(
       '#type' => 'textfield',
       '#title' => t('Test Secret Key'),
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_api_key_test_secret'),
+      '#default_value' => $this->configuration['uc_stripe_api_key_test_secret'],
       '#description' => t('Your Development Stripe API Key. Must be the "secret" key, not the "publishable" one.'),
     );
 
-    $form['uc_stripe_settings']['uc_stripe_api_key_test_publishable'] = array(
+    $form['uc_stripe_api_key_test_publishable'] = array(
       '#type' => 'textfield',
       '#title' => t('Test Publishable Key'),
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_api_key_test_publishable'),
+      '#default_value' => $this->configuration['uc_stripe_api_key_test_publishable'],
       '#description' => t('Your Development Stripe API Key. Must be the "publishable" key, not the "secret" one.'),
     );
 
-    $form['uc_stripe_settings']['uc_stripe_api_key_live_secret'] = array(
+    $form['uc_stripe_api_key_live_secret'] = array(
       '#type' => 'textfield',
       '#title' => t('Live Secret Key'),
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_api_key_live_secret'),
+      '#default_value' => $this->configuration['uc_stripe_api_key_live_secret'],
       '#description' => t('Your Live Stripe API Key. Must be the "secret" key, not the "publishable" one.'),
     );
 
-    $form['uc_stripe_settings']['uc_stripe_api_key_live_publishable'] = array(
+    $form['uc_stripe_api_key_live_publishable'] = array(
       '#type' => 'textfield',
       '#title' => t('Live Publishable Key'),
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_api_key_live_publishable'),
+      '#default_value' => $this->configuration['uc_stripe_api_key_live_publishable'],
       '#description' => t('Your Live Stripe API Key. Must be the "publishable" key, not the "secret" one.'),
     );
 
-    $form['uc_stripe_settings']['uc_stripe_testmode'] = array(
+    $form['uc_stripe_testmode'] = array(
       '#type' => 'checkbox',
       '#title' => t('Test mode'),
       '#description' => 'Testing Mode: Stripe will use the development API key to process the transaction so the card will not actually be charged.',
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_testmode'),
+      '#default_value' => $this->configuration['uc_stripe_testmode'],
     );
 
-    $form['uc_stripe_settings']['uc_stripe_poweredby'] = array(
+    $form['uc_stripe_poweredby'] = array(
       '#type' => 'checkbox',
       '#title' => t('Powered by Stripe'),
       '#description' => 'Show "powered by Stripe" in shopping cart.',
-      '#default_value' => \Drupal::config('uc_stripe.settings')
-        ->get('uc_stripe_poweredby'),
+      '#default_value' => $this->configuration['uc_stripe_poweredby'],
     );
 
     return $form;
@@ -91,6 +73,10 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
+    foreach (['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable', 'uc_stripe_testmode', 'uc_stripe_poweredby'] as $item) {
+      $this->configuration[$item] = $form_state->getValue($item);
+    }
+
     return parent::submitConfigurationForm($form, $form_state);
   }
 
@@ -100,7 +86,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   protected function chargeCard(OrderInterface $order, $amount, $txn_type, $reference = NULL) {
     $user = \Drupal::currentUser();
 
-    if (!_uc_stripe_prepare_api()) {
+    if (!$this->prepareApi()) {
       $result = array(
         'success' => FALSE,
         'comment' => t('Stripe API not found.'),
@@ -182,5 +168,55 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
       return $result;
     }
+  }
+
+
+  public function cartDetails(OrderInterface $order, array $form, FormStateInterface $form_state) {
+    $details = parent::cartDetails($order, $form, $form_state);
+
+//    $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
+//    $output .= \Drupal::service("renderer")->render($form['config_error']);
+//
+//    $output .= \Drupal::service("renderer")->render($form['stripe_token']);
+//    $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
+
+    return $details;
+
+  }
+
+
+  /**
+   * Load stripe API
+   *
+   * @return bool
+   */
+  public function prepareApi() {
+
+    if (!$this->checkApiKeys()) {
+      \Drupal::logger('uc_stripe')->error('Stripe API keys are not configured. Payments cannot be made without them.', array());
+      return FALSE;
+    }
+
+    $secret_key = $this->configuration['uc_stripe_testmode'] ? $this->configuration['uc_stripe_api_key_test_secret'] : $this->configuration['uc_stripe_api_key_live_secret'];
+    try {
+      \Stripe\Stripe::setApiKey($secret_key);
+    } catch (Exception $e) {
+      \Drupal::logger('uc_stripe')->notice('Error setting the Stripe API Key. Payments will not be processed: %error', array('%error' => $e->getMessage()));
+    }
+    return TRUE;
+  }
+
+  /**
+   * Check that all API keys are configured.
+   *
+   * @return bool
+   *   TRUE if all 4 keys have a value.
+   */
+  public function checkApiKeys() {
+
+    return ($this->configuration['uc_stripe_api_key_live_publishable'] &&
+      $this->configuration['uc_stripe_api_key_live_secret'] &&
+      $this->configuration['uc_stripe_api_key_test_publishable'] &&
+      $this->configuration['uc_stripe_api_key_test_secret']);
   }
 }

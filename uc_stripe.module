@@ -361,39 +361,6 @@ function uc_stripe_checkout_form_customsubmit($form, FormState $form_state) {
 
 
 
-/**
- * Load stripe API
- *
- * @return bool
- */
-function _uc_stripe_prepare_api() {
-
-  if (!_uc_stripe_check_api_keys()) {
-    \Drupal::logger('uc_stripe')->error('Stripe API keys are not configured. Payments cannot be made without them.', array());
-    return FALSE;
-  }
-
-  $secret_key = \Drupal::config('uc_stripe.settings')->get('uc_stripe_testmode') ? \Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_test_secret') : \Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_live_secret');
-  try {
-    \Stripe\Stripe::setApiKey($secret_key);
-  } catch (Exception $e) {
-    \Drupal::logger('uc_stripe')->notice('Error setting the Stripe API Key. Payments will not be processed: %error', array('%error' => $e->getMessage()));
-  }
-  return TRUE;
-}
-
-/**
- * Check that all API keys are configured.
- *
- * @return bool
- *   TRUE if all 4 keys have a value.
- */
-function _uc_stripe_check_api_keys() {
-  return (\Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_live_publishable') &&
-    \Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_live_secret') &&
-    \Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_test_publishable') &&
-    \Drupal::config('uc_stripe.settings')->get('uc_stripe_api_key_test_secret'));
-}
 
 /**
  * Retrieve the Stripe customer id for a user
@@ -417,7 +384,7 @@ function _uc_stripe_get_customer_id($uid) {
  *
  * @param $theme_registry
  */
-function uc_stripe_theme_registry_alter(&$theme_registry) {
+function uc_stripe_theme_registry_alter_xxx(&$theme_registry) {
   if (!empty($theme_registry['uc_payment_method_credit_form'])) {
     $theme_registry['uc_payment_method_credit_form']['function'] = 'uc_stripe_uc_payment_method_credit_form';
   }
