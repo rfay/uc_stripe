@@ -263,10 +263,12 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
   protected function validateCardNumber($number) {
     // Do nothing - let Stripe validate the number
+    return TRUE;
   }
 
   protected function validateCvv($cvv) {
     // Do nothing - let Stripe validate the CVV
+    return TRUE;
   }
 
   /**
