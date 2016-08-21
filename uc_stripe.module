@@ -6,22 +6,21 @@
  */
 
 use \Drupal\Core\Form\FormState;
-use \Drupal\user\Entity\User;
 
-/**
- * Implements hook_payment_gateway to register this payment gateway
- * @return array
- */
-function uc_stripe_uc_payment_gateway() {
-  $gateways['uc_stripe'] = [
-    'title' => t('Stripe Gateway'),
-    'description' => t('Process card payments using Stripe JS.'),
-    'settings' => 'uc_stripe_settings_form',
-    'credit' => 'uc_stripe_charge',
-    'credit_txn_types' => array(UC_CREDIT_AUTH_CAPTURE),
-  ];
-  return $gateways;
-}
+///**
+// * Implements hook_uc_payment_gateway to register this payment gateway
+// * @return array
+// */
+//function uc_stripe_uc_payment_gateway() {
+//  $gateways['uc_stripe'] = [
+//    'title' => t('Stripe Gateway'),
+//    'description' => t('Process card payments using Stripe JS.'),
+//    'settings' => 'uc_stripe_settings_form',
+//    'credit' => 'uc_stripe_charge',
+//    'credit_txn_types' => array(UC_CREDIT_AUTH_CAPTURE),
+//  ];
+//  return $gateways;
+//}
 
 /**
  * @TODO: Revisit this when uc_recurring is available
@@ -58,7 +57,7 @@ function uc_stripe_uc_payment_gateway() {
  * @param $form_state
  * @param $form_id
  */
-function uc_stripe_form_uc_cart_checkout_form_alter(&$form, &$form_state) {
+function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_state) {
 
   $payment_form = &$form['panes']['payment']['details'];
 
@@ -126,19 +125,20 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, &$form_state) {
  *
  * @return array
  */
-function uc_stripe_uc_order_pane() {
-  $panes[] = array(
-    'id' => 'uc_stripe',
-    'callback' => 'uc_stripe_order_pane_stripe',
-    'title' => t('Stripe Customer Info'),
-    'desc' => t("Stripe Information"),
-    'class' => 'pos-left',
-    'weight' => 3,
-    'show' => array('view', 'edit'),
-  );
-
-  return $panes;
-}
+// TODO: Remove as it's obsolete
+//function uc_stripe_uc_order_pane() {
+//  $panes[] = array(
+//    'id' => 'uc_stripe',
+//    'callback' => 'uc_stripe_order_pane_stripe',
+//    'title' => t('Stripe Customer Info'),
+//    'desc' => t("Stripe Information"),
+//    'class' => 'pos-left',
+//    'weight' => 3,
+//    'show' => array('view', 'edit'),
+//  );
+//
+//  return $panes;
+//}
 
 /**
  * Implements hook_uc_checkout_complete()
@@ -173,39 +173,17 @@ function uc_stripe_uc_checkout_complete($order, $account) {
  * @param $form_state
  * @return array
  */
-function uc_stripe_order_pane_stripe($op, $order, &$form = NULL, &$form_state = NULL) {
-  switch ($op) {
-    case 'view':
-      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
-      $output = t("Customer ID: ") . $stripe_customer_id;
-      return array('#markup' => $output);
-    default:
-      return;
-  }
-}
-
-/**
- * Implements hook_form_FORMID_alter()
- *
- * Add validation function for stripe settings
- *
- * @param $form
- * @param $form_state
- */
-function uc_stripe_form_uc_payment_method_settings_form_alter(&$form, &$form_state) {
-  $form['#validate'][] = 'uc_stripe_settings_form_validate';
-}
-
-/**
- * Validation function and normalize keys (trim spaces)
- *
- * @param $form
- * @param $form_state
- */
-function uc_stripe_settings_form_validate($form, &$form_state) {
-
-}
-
+// TODO: Find out where this functionality would be done in D8
+//function uc_stripe_order_pane_stripe($op, $order, &$form = NULL, &$form_state = NULL) {
+//  switch ($op) {
+//    case 'view':
+//      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
+//      $output = t("Customer ID: ") . $stripe_customer_id;
+//      return array('#markup' => $output);
+//    default:
+//      return;
+//  }
+//}
 
 /**
  * Custom submit function to store the stripe token
@@ -326,58 +304,28 @@ function uc_stripe_checkout_form_customsubmit($form, FormState $form_state) {
 //}
 
 
-
-
-/**
- * Retrieve the Stripe customer id for a user
- *
- * @param $uid
- * @return bool
- */
-function _uc_stripe_get_customer_id($uid) {
-
-  /** @var \Drupal\user\UserDataInterface $userdata_container */
-  $userdata_container = \Drupal::getContainer('user.data');
-
-  $id = $userdata_container->get('uc_stripe', $uid, 'uc_stripe_customer_id');
-  return $id;
-}
-
-
-/**
- * Implements hook_theme_registry_alter() to make sure that we render
- * the entire credit form, including the key returned by JS.
- *
- * @param $theme_registry
- */
-function uc_stripe_theme_registry_alter_xxx(&$theme_registry) {
-  if (!empty($theme_registry['uc_payment_method_credit_form'])) {
-    $theme_registry['uc_payment_method_credit_form']['function'] = 'uc_stripe_uc_payment_method_credit_form';
-  }
-}
-
 /**
  * Replace uc_credit's form themeing with our own - adds stripe_token.
  * @param $form
  * @return string
  */
-function uc_stripe_uc_payment_method_credit_form($form) {
-  $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
-  $output .= \Drupal::service("renderer")->render($form['config_error']);
-  // @FIXME
-// theme() has been renamed to _theme() and should NEVER be called directly.
-// Calling _theme() directly can alter the expected output and potentially
-// introduce security issues (see https://www.drupal.org/node/2195739). You
-// should use renderable arrays instead.
+//function uc_stripe_uc_payment_method_credit_form($form) {
+//  $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
+//  $output .= \Drupal::service("renderer")->render($form['config_error']);
+//  // @FIXME
+//// theme() has been renamed to _theme() and should NEVER be called directly.
+//// Calling _theme() directly can alter the expected output and potentially
+//// introduce security issues (see https://www.drupal.org/node/2195739). You
+//// should use renderable arrays instead.
+////
+////
+//// @see https://www.drupal.org/node/2195739
+//// $output .= theme('uc_payment_method_credit_form',$form);
 //
+//  $output .= \Drupal::service("renderer")->render($form['stripe_token']);
+//  $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
 //
-// @see https://www.drupal.org/node/2195739
-// $output .= theme('uc_payment_method_credit_form',$form);
-
-  $output .= \Drupal::service("renderer")->render($form['stripe_token']);
-  $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
-
-  return $output;
-}
+//  return $output;
+//}
 
 

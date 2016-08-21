@@ -141,7 +141,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     // then load the customer ID from the user object.
     // Otherwise, make a brand new customer each time a user checks out.
     if ($user->id() != $order->getOwnerId()) {
-      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
+      $stripe_customer_id = $this->getStripeCustomerID($order->id());
     }
 
 
@@ -269,5 +269,18 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     // Do nothing - let Stripe validate the CVV
   }
 
+  /**
+   * Retrieve the Stripe customer id for a user
+   *
+   * @param $uid
+   * @return string|NULL
+   */
+  function getStripeCustomerID($uid) {
 
+    /** @var \Drupal\user\UserDataInterface $userdata_container */
+    $userdata_container = \Drupal::getContainer('user.data');
+
+    $id = $userdata_container->get('uc_stripe', $uid, 'uc_stripe_customer_id');
+    return $id;
+  }
 }
