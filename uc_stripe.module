@@ -70,6 +70,7 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
   // Add custom JS and CSS
   $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
   $form['#attached']['drupalSettings']['uc_stripe']['publishable_key'] = $apikey;
+  // NOTE: This value seems routinely not to get to the JS
   $form['#attached']['drupalSettings']['uc_stripe']['stripe_is_enabled'] = $stripe_is_enabled;
 
   // No more form work is required if stripe not enabled

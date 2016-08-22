@@ -6,6 +6,7 @@
  */
 (function ($) {
 
+  'use strict';
   Drupal.behaviors.uc_stripe = {
     attach: function (context) {
 
@@ -15,7 +16,7 @@
       var cc_num = cc_container.find(':input[data-drupal-selector*="edit-panes-payment-details-cc-numbe"]');
       var cc_cvv = cc_container.find(':input[id*="edit-panes-payment-details-cc-cv"]');
       var apikey = drupalSettings.uc_stripe.publishable_key;
-      Stripe.setPublishableKey(apikey);
+      Stripe.setPublishableKey(apikey); // eslint-disable-line no-undef
 
       // Make sure that when the page is being loaded the token value is reset
       // Browser or other caching might do otherwise.
@@ -38,7 +39,7 @@
       }
 
       submitButton.click(function (e) {
-        
+
         // We must find the various fields again, because they may have been swapped
         // in by ajax action of the form.
         cc_container = $('.payment-details-stripe-gateway');
@@ -48,12 +49,12 @@
         // If not credit card processing or no token field, just let the submit go on
         // Also continue if we've received the tokenValue
         var tokenField = $("[name='panes[payment][details][stripe_token]']");
-        if (!cc_container.length || !tokenField.length || tokenField.val().indexOf('tok_') == 0) {
+        if (!cc_container.length || !tokenField.length || tokenField.val().indexOf('tok_') === 0) {
           return true;
         }
 
         // If we've requested and are waiting for token, prevent any further submit
-        if (tokenField.val() == 'requested') {
+        if (tokenField.val() === 'requested') {
           return false; // Prevent any submit processing until token is received
         }
 
@@ -61,26 +62,26 @@
         tokenField.val('requested');
 
         try {
-          var address_zip = undefined;
-          var name = undefined;
+          var address_zip;
+          var name;
 
           // Try to get postal_code and name from billing pane
           if ($(':input[name="panes[billing][billing_postal_code]"]').length) {
             address_zip = $(':input[name="panes[billing][billing_postal_code]"]').val();
           }
           if ($(':input[name="panes[billing][billing_first_name]"]').length) {
-            name = $(':input[name="panes[billing][billing_first_name]"]').val() + " " + $(':input[name="panes[billing][billing_last_name]"]').val();
+            name = $(':input[name="panes[billing][billing_first_name]"]').val() + ' ' + $(':input[name="panes[billing][billing_last_name]"]').val();
           }
 
           // If we didn't find postal code/name in billing pane, try it in shipping pane
-          if (typeof address_zip === "undefined") {
+          if (typeof address_zip === 'undefined') {
             address_zip = $(':input[name="panes[delivery][delivery_postal_code]"]').val();
           }
-          if (typeof name === "undefined" && $(':input[name="panes[delivery][delivery_first_name]"]').length) {
-            name = $(':input[name="panes[delivery][delivery_first_name]"]').val() + " " + $(':input[name="panes[delivery][delivery_last_name]"]').val();
+          if (typeof name === 'undefined' && $(':input[name="panes[delivery][delivery_first_name]"]').length) {
+            name = $(':input[name="panes[delivery][delivery_first_name]"]').val() + ' ' + $(':input[name="panes[delivery][delivery_last_name]"]').val();
           }
 
-          Stripe.createToken({
+          Stripe.createToken({ // eslint-disable-line no-undef
             number: cc_num.val(),
             cvc: cc_cvv.val(),
             exp_month: $(':input[name="panes[payment][details][cc_exp_month]"]').val(),
@@ -93,7 +94,7 @@
 
               // Show the errors on the form
               $('#uc-stripe-messages')
-                .removeClass("hidden")
+                .removeClass('hidden')
                 .text(response.error.message);
               $('#edit-stripe-messages').val(response.error.message);
 
@@ -143,7 +144,7 @@
           });
         } catch (e) {
           $('#uc-stripe-messages')
-            .removeClass("hidden")
+            .removeClass('hidden')
             .text(e.message);
           $('#edit-stripe-messages').val(e.message);
         }

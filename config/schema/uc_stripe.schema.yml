@@ -1,6 +1,4 @@
-payment_method.settings.uc_stripe:
-  type: mapping
-  label: Settings
+payment_method.settings.stripe:
   mapping:
     uc_stripe_testmode:
       type: boolean

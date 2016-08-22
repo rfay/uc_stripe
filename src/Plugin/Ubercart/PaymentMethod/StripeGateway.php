@@ -17,6 +17,20 @@ use Drupal\uc_order\OrderInterface;
  */
 class StripeGateway extends CreditCardPaymentMethodBase {
 
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return [
+      'txn_type' => UC_CREDIT_AUTH_CAPTURE,
+      'uc_stripe_api_key_test_secret' => '',
+      'uc_stripe_api_key_test_publishable' => '',
+      'uc_stripe_api_key_live_secret' => '',
+      'uc_stripe_api_key_live_publishable' => '',
+      'uc_stripe_testmode' => TRUE,
+    ];
+  }
   /**
    * {@inheritdoc}
    */
