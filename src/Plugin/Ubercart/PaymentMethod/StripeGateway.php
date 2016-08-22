@@ -17,7 +17,6 @@ use Drupal\uc_order\OrderInterface;
  */
 class StripeGateway extends CreditCardPaymentMethodBase {
 
-
   /**
    * {@inheritdoc}
    */
@@ -57,13 +56,6 @@ class StripeGateway extends CreditCardPaymentMethodBase {
       '#title' => t('Test mode'),
       '#description' => 'Testing Mode: Stripe will use the development API key to process the transaction so the card will not actually be charged.',
       '#default_value' => $this->configuration['uc_stripe_testmode'],
-    );
-
-    $form['uc_stripe_poweredby'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Powered by Stripe'),
-      '#description' => 'Show "powered by Stripe" in shopping cart.',
-      '#default_value' => $this->configuration['uc_stripe_poweredby'],
     );
 
     return $form;
@@ -107,7 +99,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    foreach (['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable', 'uc_stripe_testmode', 'uc_stripe_poweredby'] as $item) {
+    foreach (['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable', 'uc_stripe_testmode'] as $item) {
       $this->configuration[$item] = $form_state->getValue($item);
     }
 
@@ -226,12 +218,19 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     return TRUE;
   }
 
-
+  /**
+   * @param string $number
+   * @return bool
+   */
   protected function validateCardNumber($number) {
     // Do nothing - let Stripe validate the number
     return TRUE;
   }
 
+  /**
+   * @param string $cvv
+   * @return bool
+   */
   protected function validateCvv($cvv) {
     // Do nothing - let Stripe validate the CVV
     return TRUE;

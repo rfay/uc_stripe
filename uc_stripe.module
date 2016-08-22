@@ -59,15 +59,32 @@ use \Drupal\Core\Form\FormState;
  */
 function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_state) {
 
-  $payment_form = &$form['panes']['payment']['details'];
+  $config = \Drupal::config('uc_payment.method.stripe');
+  $apikey = $config->get('settings.uc_stripe_testmode')
+    ? $config->get('settings.uc_stripe_api_key_test_publishable')
+    : $config->get('settings.uc_stripe_api_key_live_publishable');
 
-  $payment_form['stripe_nojs_warning'] = array(
+  $stripe_is_enabled = $form_state->getValue(['panes', 'payment', 'payment_method']) == 'stripe'
+    || (empty($form_state->getValue(['panes', 'payment', 'payment_method'])) && $form['panes']['payment']['payment_method']['#default_value'] == 'stripe');
+
+  // Add custom JS and CSS
+  $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
+  $form['#attached']['drupalSettings']['uc_stripe']['publishable_key'] = $apikey;
+  $form['#attached']['drupalSettings']['uc_stripe']['stripe_is_enabled'] = $stripe_is_enabled;
+
+  // No more form work is required if stripe not enabled
+  if (!$stripe_is_enabled) {
+    return;
+  }
+  $payment_details_form = &$form['panes']['payment']['details'];
+
+  $payment_details_form['stripe_nojs_warning'] = array(
     '#type' => 'item',
     '#markup' => '<span id="stripe-nojs-warning" class="stripe-warning">' . t('Sorry, for security reasons your card cannot be processed because Javascript is disabled in your browser.') . '</span>',
     '#weight' => -1000,
   );
 
-  $payment_form['stripe_token'] = array(
+  $payment_details_form['stripe_token'] = array(
     '#type' => 'hidden',
     '#default_value' => 'default',
     '#attributes' => array(
@@ -80,28 +97,18 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
   // If JS happens to be disabled, we don't want user to be able to enter CC data.
   // Note that we can't use '#disabled', as it causes Form API to discard all input,
   // so use the disabled attribute instead.
-  $form['panes']['payment']['details']['cc_number']['#attributes']['disabled'] = 'disabled';
+  $payment_details_form['cc_number']['#attributes']['disabled'] = 'disabled';
   if (empty($form['actions']['continue']['#attributes'])) {
     $form['actions']['continue']['#attributes'] = array();
   }
   $form['actions']['continue']['#attributes']['disabled'] = 'disabled';
-
-  $config = \Drupal::config('uc_payment.method.stripe');
-  $apikey = $config->get('settings.uc_stripe_testmode')
-    ? $config->get('settings.uc_stripe_api_key_test_publishable')
-    : $config->get('settings.uc_stripe_api_key_live_publishable');
-
-
-  // Add custom JS and CSS
-  $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
-  $form['#attached']['drupalSettings']['uc_stripe']['publishable_key'] = $apikey;
 
   // Add custom submit which will do saving away of token during submit.
   $form['#submit'][] = 'uc_stripe_checkout_form_customsubmit';
 
   // Add a section for stripe.js error messages (CC validation, etc.)
   $form['panes']['messages'] = array(
-    '#markup' => "<div id='uc_stripe_messages' class='messages error hidden'></div>",
+    '#markup' => "<div id='uc-stripe-messages' class='messages error hidden'></div>",
   );
 
   // TODO: Revisit

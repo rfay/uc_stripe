@@ -8,6 +8,7 @@
 
   Drupal.behaviors.uc_stripe = {
     attach: function (context) {
+
       var submitButton = $('.uc-cart-checkout-form #edit-continue');
 
       var cc_container = $('.payment-details-stripe-gateway');
@@ -23,7 +24,7 @@
       $('span#stripe-nojs-warning').parent().hide();
 
       // JS must enable the button; otherwise form might disclose cc info. It starts disabled
-      submitButton.attr('disabled', false);
+      submitButton.attr('disabled', false).removeClass('is-disabled');
 
       // When this behavior fires, we can clean the form so it will behave properly,
       // Remove 'name' from sensitive form elements so there's no way they can be submitted.
@@ -37,7 +38,7 @@
       }
 
       submitButton.click(function (e) {
-
+        
         // We must find the various fields again, because they may have been swapped
         // in by ajax action of the form.
         cc_container = $('.payment-details-stripe-gateway');
@@ -91,7 +92,7 @@
             if (response.error) {
 
               // Show the errors on the form
-              $('#uc_stripe_messages')
+              $('#uc-stripe-messages')
                 .removeClass("hidden")
                 .text(response.error.message);
               $('#edit-stripe-messages').val(response.error.message);
@@ -141,7 +142,7 @@
             }
           });
         } catch (e) {
-          $('#uc_stripe_messages')
+          $('#uc-stripe-messages')
             .removeClass("hidden")
             .text(e.message);
           $('#edit-stripe-messages').val(e.message);

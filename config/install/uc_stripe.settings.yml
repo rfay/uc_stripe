@@ -3,4 +3,3 @@ uc_stripe_api_key_test_publishable: false
 uc_stripe_api_key_live_publishable: false
 uc_stripe_api_key_test_secret: false
 uc_stripe_api_key_live_secret: false
-uc_stripe_poweredby: false

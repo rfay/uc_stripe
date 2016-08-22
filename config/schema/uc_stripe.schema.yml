@@ -12,5 +12,3 @@ payment_method.settings.uc_stripe:
       type: string
     uc_stripe_api_key_live_secret:
       type: string
-    uc_stripe_poweredby:
-      type: boolean
