@@ -7,21 +7,6 @@
 
 use \Drupal\Core\Form\FormState;
 
-///**
-// * Implements hook_uc_payment_gateway to register this payment gateway
-// * @return array
-// */
-//function uc_stripe_uc_payment_gateway() {
-//  $gateways['uc_stripe'] = [
-//    'title' => t('Stripe Gateway'),
-//    'description' => t('Process card payments using Stripe JS.'),
-//    'settings' => 'uc_stripe_settings_form',
-//    'credit' => 'uc_stripe_charge',
-//    'credit_txn_types' => array(UC_CREDIT_AUTH_CAPTURE),
-//  ];
-//  return $gateways;
-//}
-
 /**
  * @TODO: Revisit this when uc_recurring is available
  *
@@ -50,81 +35,15 @@ use \Drupal\Core\Form\FormState;
 
 
 /**
- * Implements hook_form_FORMID_alter() to change the checkout form
- * All work as a result is done in JS, the ordinary post does not happen.
+ * Implements hook_form_FORMID_alter() to make sure we've loaded the stripe js.
+ * It must be loaded with the original form, as can't get loaded later by ajax,
+ * although the attach method gets called IF it's been loaded.
  *
  * @param $form
  * @param $form_state
- * @param $form_id
  */
 function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_state) {
-
-  $config = \Drupal::config('uc_payment.method.stripe');
-  $apikey = $config->get('settings.uc_stripe_testmode')
-    ? $config->get('settings.uc_stripe_api_key_test_publishable')
-    : $config->get('settings.uc_stripe_api_key_live_publishable');
-
-  $stripe_is_enabled = $form_state->getValue(['panes', 'payment', 'payment_method']) == 'stripe'
-    || (empty($form_state->getValue(['panes', 'payment', 'payment_method'])) && $form['panes']['payment']['payment_method']['#default_value'] == 'stripe');
-
-  // Add custom JS and CSS
   $form['#attached']['library'][] = 'uc_stripe/uc_stripe';
-  $form['#attached']['drupalSettings']['uc_stripe']['publishable_key'] = $apikey;
-  // NOTE: This value seems routinely not to get to the JS
-  $form['#attached']['drupalSettings']['uc_stripe']['stripe_is_enabled'] = $stripe_is_enabled;
-
-  // No more form work is required if stripe not enabled
-  if (!$stripe_is_enabled) {
-    return;
-  }
-  $payment_details_form = &$form['panes']['payment']['details'];
-
-  $payment_details_form['stripe_nojs_warning'] = array(
-    '#type' => 'item',
-    '#markup' => '<span id="stripe-nojs-warning" class="stripe-warning">' . t('Sorry, for security reasons your card cannot be processed because Javascript is disabled in your browser.') . '</span>',
-    '#weight' => -1000,
-  );
-
-  $payment_details_form['stripe_token'] = array(
-    '#type' => 'hidden',
-    '#default_value' => 'default',
-    '#attributes' => array(
-      'id' => 'edit-panes-payment-details-stripe-token',
-    ),
-  );
-
-  // Prevent form Credit card fill and submission if javascript has not removed
-  // the "disabled" attributes..
-  // If JS happens to be disabled, we don't want user to be able to enter CC data.
-  // Note that we can't use '#disabled', as it causes Form API to discard all input,
-  // so use the disabled attribute instead.
-  $payment_details_form['cc_number']['#attributes']['disabled'] = 'disabled';
-  if (empty($form['actions']['continue']['#attributes'])) {
-    $form['actions']['continue']['#attributes'] = array();
-  }
-  $form['actions']['continue']['#attributes']['disabled'] = 'disabled';
-
-  // Add custom submit which will do saving away of token during submit.
-  $form['#submit'][] = 'uc_stripe_checkout_form_customsubmit';
-
-  // Add a section for stripe.js error messages (CC validation, etc.)
-  $form['panes']['messages'] = array(
-    '#markup' => "<div id='uc-stripe-messages' class='messages error hidden'></div>",
-  );
-
-  // TODO: Revisit
-//  if (uc_credit_default_gateway() == 'uc_stripe') {
-//    if (\Drupal::config('uc_stripe.settings')->get('uc_stripe_testmode')) {
-//      // @FIXME
-//// l() expects a Url object, created from a route name or external URI.
-//// $form['panes']['testmode'] = array(
-////         '#prefix' => "<div class='messages' style='background-color:#BEEBBF'>",
-////         '#markup' => t("Test mode is <strong>ON</strong> for the Stripe Payment Gateway. Your  card will not be charged. To change this setting, edit the !link", array('!link' => l("Stripe settings", "admin/store/settings/payment/method/credit"))),
-////         '#suffix' => "</div>",
-////       );
-//
-//    }
-//  }
 }
 
 /**
@@ -135,7 +54,7 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
  */
 function _uc_stripe_check_api_keys() {
 
-  $config = \Drupal::config('uc_payment.method.stripe');
+  $config = \Drupal::config('uc_payment.method.striper');
 
   return $config->get('settings.uc_stripe_api_key_live_publishable') &&
     $config->get('settings.uc_stripe_api_key_live_secret') &&
@@ -143,25 +62,7 @@ function _uc_stripe_check_api_keys() {
     $config->get('settings.uc_stripe_api_key_test_secret');
 }
 
-/**
- * Implements hook_order_pane to provide the stripe customer info
- *
- * @return array
- */
-// TODO: Remove as it's obsolete
-//function uc_stripe_uc_order_pane() {
-//  $panes[] = array(
-//    'id' => 'uc_stripe',
-//    'callback' => 'uc_stripe_order_pane_stripe',
-//    'title' => t('Stripe Customer Info'),
-//    'desc' => t("Stripe Information"),
-//    'class' => 'pos-left',
-//    'weight' => 3,
-//    'show' => array('view', 'edit'),
-//  );
-//
-//  return $panes;
-//}
+
 
 /**
  * Implements hook_uc_checkout_complete()
@@ -183,47 +84,6 @@ function uc_stripe_uc_checkout_complete($order, $account) {
   }
 }
 
-
-/**
- * Implements uc_order_pane_callback() specified in 'callback' of
- * uc_stripe_uc_order_pane()
- *
- * Returns text for customer id for order pane.
- *
- * @param $op
- * @param $order
- * @param $form
- * @param $form_state
- * @return array
- */
-// TODO: Find out where this functionality would be done in D8
-//function uc_stripe_order_pane_stripe($op, $order, &$form = NULL, &$form_state = NULL) {
-//  switch ($op) {
-//    case 'view':
-//      $stripe_customer_id = _uc_stripe_get_customer_id($order->id());
-//      $output = t("Customer ID: ") . $stripe_customer_id;
-//      return array('#markup' => $output);
-//    default:
-//      return;
-//  }
-//}
-
-/**
- * Custom submit function to store the stripe token
- *
- * Since we don't have a user account at this step, we're going to store the token
- * in private_tempstore. We'll grab the token in the charge callback and use it to charge
- *
- * @param $form
- * @param $form_state
- */
-function uc_stripe_checkout_form_customsubmit($form, FormState $form_state) {
-  // This submit may be entered on another payment type, so don't set session in that case.
-  $stripe_token_val = $form_state->getValue(['panes', 'payment', 'details', 'stripe_token']);
-  if (!empty($stripe_token_val)) {
-    \Drupal::service('user.private_tempstore')->get('uc_stripe')->set('uc_stripe_token', $stripe_token_val);
-  }
-}
 
 /**
  * TODO: Revisit this when uc_recurring is available.
