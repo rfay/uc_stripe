@@ -24,11 +24,11 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   public function defaultConfiguration() {
     return parent::defaultConfiguration() + [
       'txn_type' => UC_CREDIT_AUTH_CAPTURE,
-      'uc_stripe_api_key_test_secret' => '',
-      'uc_stripe_api_key_test_publishable' => '',
-      'uc_stripe_api_key_live_secret' => '',
-      'uc_stripe_api_key_live_publishable' => '',
-      'uc_stripe_testmode' => TRUE,
+      'test_secret_key' => '',
+      'test_publishable_key' => '',
+      'live_secret_key' => '',
+      'live_publishable_key' => '',
+      'testmode' => TRUE,
     ];
   }
   /**
@@ -37,39 +37,39 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    $form['uc_stripe_api_key_test_secret'] = array(
+    $form['test_secret_key'] = array(
       '#type' => 'textfield',
       '#title' => t('Test Secret Key'),
-      '#default_value' => $this->configuration['uc_stripe_api_key_test_secret'],
+      '#default_value' => $this->configuration['test_secret_key'],
       '#description' => t('Your Development Stripe API Key. Must be the "secret" key, not the "publishable" one.'),
     );
 
-    $form['uc_stripe_api_key_test_publishable'] = array(
+    $form['test_publishable_key'] = array(
       '#type' => 'textfield',
       '#title' => t('Test Publishable Key'),
-      '#default_value' => $this->configuration['uc_stripe_api_key_test_publishable'],
+      '#default_value' => $this->configuration['test_publishable_key'],
       '#description' => t('Your Development Stripe API Key. Must be the "publishable" key, not the "secret" one.'),
     );
 
-    $form['uc_stripe_api_key_live_secret'] = array(
+    $form['live_secret_key'] = array(
       '#type' => 'textfield',
       '#title' => t('Live Secret Key'),
-      '#default_value' => $this->configuration['uc_stripe_api_key_live_secret'],
+      '#default_value' => $this->configuration['live_secret_key'],
       '#description' => t('Your Live Stripe API Key. Must be the "secret" key, not the "publishable" one.'),
     );
 
-    $form['uc_stripe_api_key_live_publishable'] = array(
+    $form['live_publishable_key'] = array(
       '#type' => 'textfield',
       '#title' => t('Live Publishable Key'),
-      '#default_value' => $this->configuration['uc_stripe_api_key_live_publishable'],
+      '#default_value' => $this->configuration['live_publishable_key'],
       '#description' => t('Your Live Stripe API Key. Must be the "publishable" key, not the "secret" one.'),
     );
 
-    $form['uc_stripe_testmode'] = array(
+    $form['testmode'] = array(
       '#type' => 'checkbox',
       '#title' => t('Test mode'),
       '#description' => 'Testing Mode: Stripe will use the development API key to process the transaction so the card will not actually be charged.',
-      '#default_value' => $this->configuration['uc_stripe_testmode'],
+      '#default_value' => $this->configuration['testmode'],
     );
 
     return $form;
@@ -77,7 +77,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
 
-    $elements = ['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable'];
+    $elements = ['test_secret_key', 'test_publishable_key', 'live_secret_key', 'live_publishable_key'];
 
     foreach ($elements as $element_name) {
       $raw_key = $form_state->getValue(['settings', $element_name]);
@@ -113,7 +113,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-    foreach (['uc_stripe_api_key_test_secret', 'uc_stripe_api_key_test_publishable', 'uc_stripe_api_key_live_secret', 'uc_stripe_api_key_live_publishable', 'uc_stripe_testmode'] as $item) {
+    foreach (['test_secret_key', 'test_publishable_key', 'live_secret_key', 'live_publishable_key', 'testmode'] as $item) {
       $this->configuration[$item] = $form_state->getValue($item);
     }
 
@@ -123,9 +123,9 @@ class StripeGateway extends CreditCardPaymentMethodBase {
   public function cartDetails(OrderInterface $order, array $form, FormStateInterface $form_state) {
     $form = parent::cartDetails($order, $form, $form_state);
 
-    $apikey = $this->configuration['uc_stripe_testmode']
-      ? $this->configuration['uc_stripe_api_key_test_publishable']
-      : $this->configuration['uc_stripe_api_key_live_publishable'];
+    $apikey = $this->configuration['testmode']
+      ? $this->configuration['test_publishable_key']
+      : $this->configuration['live_publishable_key'];
 
     $stripe_is_enabled = TRUE;
 
@@ -168,28 +168,15 @@ class StripeGateway extends CreditCardPaymentMethodBase {
       '#markup' => "<div id='uc-stripe-messages' class='messages error hidden'></div>",
     );
 
-    if ($this->configuration['uc_stripe_testmode']) {
+    if ($this->configuration['testmode']) {
       $form['testmode'] = [
         '#prefix' => "<div class='messages uc-stripe-testmode'>",
-        '#markup' => t('Test mode is <strong>ON</strong> for the Ubercart Stripe Payment Gateway. Your  card will not be charged. To change this setting, edit the payment method at !link.', ['!link' => Link::createFromRoute(t('payment method settings'), 'entity.uc_payment_method.collection')->toString()]),
+        '#markup' => $this->t('Test mode is <strong>ON</strong> for the Ubercart Stripe Payment Gateway. Your  card will not be charged. To change this setting, edit the payment method at @link.', ['@link' => Link::createFromRoute(t('payment method settings'), 'entity.uc_payment_method.collection')->toString()]),
         '#suffix' => "</div>",
       ];
       ;
     }
 
-    // TODO: Revisit
-//  if (uc_credit_default_gateway() == 'uc_stripe') {
-//    if (\Drupal::config('uc_stripe.settings')->get('uc_stripe_testmode')) {
-//      // @FIXME
-//// l() expects a Url object, created from a route name or external URI.
-//// $form['panes']['testmode'] = array(
-////         '#prefix' => "<div class='messages' style='background-color:#BEEBBF'>",
-////         '#markup' => t("Test mode is <strong>ON</strong> for the Stripe Payment Gateway. Your  card will not be charged. To change this setting, edit the !link", array('!link' => l("Stripe settings", "admin/store/settings/payment/method/credit"))),
-////         '#suffix' => "</div>",
-////       );
-//
-//    }
-//  }
     return $form;
   }
 
@@ -306,7 +293,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
       return FALSE;
     }
 
-    $secret_key = $this->configuration['uc_stripe_testmode'] ? $this->configuration['uc_stripe_api_key_test_secret'] : $this->configuration['uc_stripe_api_key_live_secret'];
+    $secret_key = $this->configuration['testmode'] ? $this->configuration['test_secret_key'] : $this->configuration['live_secret_key'];
     try {
       \Stripe\Stripe::setApiKey($secret_key);
     } catch (Exception $e) {

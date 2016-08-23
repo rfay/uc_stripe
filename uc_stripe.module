@@ -53,10 +53,10 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
  *   TRUE if all 4 keys have a value.
  */
 function _uc_stripe_check_api_keys($configuration) {
-  return $configuration['uc_stripe_api_key_live_publishable'] &&
-    $configuration['uc_stripe_api_key_live_secret'] &&
-    $configuration['uc_stripe_api_key_test_publishable'] &&
-    $configuration['uc_stripe_api_key_test_secret'];
+  return $configuration['live_publishable_key'] &&
+    $configuration['live_secret_key'] &&
+    $configuration['test_publishable_key'] &&
+    $configuration['test_secret_key'];
 }
 
 /**
@@ -72,7 +72,7 @@ function uc_stripe_uc_checkout_complete($order, $account) {
   if ($order->payment_method == "credit") {
     // Pull the stripe customer ID from the temp storage.
     // It got there in uc_stripe_checkout_form_customsubmit()
-    // This is only really necessary to save for uc_recurring
+    // This is only really necessary for uc_recurring
     $stripe_customer_id = \Drupal::service('user.private_tempstore')->get('uc_stripe')->get('uc_stripe_customer_id');
 
     \Drupal::getContainer('user.data')->set('uc_stripe', $account->id(), 'uc_stripe_customer_id', $stripe_customer_id);
