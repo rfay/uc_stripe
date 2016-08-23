@@ -3,6 +3,7 @@
 namespace Drupal\uc_stripe\Plugin\Ubercart\PaymentMethod;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
 use Drupal\uc_credit\CreditCardPaymentMethodBase;
 use Drupal\uc_order\OrderInterface;
 
@@ -166,6 +167,15 @@ class StripeGateway extends CreditCardPaymentMethodBase {
     $form['messages'] = array(
       '#markup' => "<div id='uc-stripe-messages' class='messages error hidden'></div>",
     );
+
+    if ($this->configuration['uc_stripe_testmode']) {
+      $form['testmode'] = [
+        '#prefix' => "<div class='messages uc-stripe-testmode'>",
+        '#markup' => t('Test mode is <strong>ON</strong> for the Ubercart Stripe Payment Gateway. Your  card will not be charged. To change this setting, edit the payment method at !link.', ['!link' => Link::createFromRoute(t('payment method settings'), 'entity.uc_payment_method.collection')->toString()]),
+        '#suffix' => "</div>",
+      ];
+      ;
+    }
 
     // TODO: Revisit
 //  if (uc_credit_default_gateway() == 'uc_stripe') {

@@ -2,7 +2,10 @@
   display: none;
 }
 
-.stripe-warning {
+.stripe-warning, .uc-stripe-testmode {
   color: red;
   font-style: oblique;
+  display: block;
+  clear: both;
+  border-width: 1px !important;
 }
