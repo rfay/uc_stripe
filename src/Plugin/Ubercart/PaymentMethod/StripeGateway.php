@@ -165,7 +165,7 @@ class StripeGateway extends CreditCardPaymentMethodBase {
 
     // Add a section for stripe.js error messages (CC validation, etc.)
     $form['messages'] = array(
-      '#markup' => "<div id='uc-stripe-messages' class='messages error hidden'></div>",
+      '#markup' => "<div class='uc-stripe-messages messages error hidden'></div>",
     );
 
     if ($this->configuration['testmode']) {

@@ -93,7 +93,7 @@
             if (response.error) {
 
               // Show the errors on the form
-              $('#uc-stripe-messages')
+              $('.uc-stripe-messages')
                 .removeClass('hidden')
                 .text(response.error.message);
               $('#edit-stripe-messages').val(response.error.message);
@@ -143,7 +143,7 @@
             }
           });
         } catch (e) {
-          $('#uc-stripe-messages')
+          $('.uc-stripe-messages')
             .removeClass('hidden')
             .text(e.message);
           $('#edit-stripe-messages').val(e.message);
