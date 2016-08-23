@@ -17,7 +17,6 @@ use Drupal\uc_order\OrderInterface;
  */
 class StripeGateway extends CreditCardPaymentMethodBase {
 
-
   /**
    * {@inheritdoc}
    */
@@ -291,7 +290,8 @@ class StripeGateway extends CreditCardPaymentMethodBase {
    */
   public function prepareApi() {
 
-    if (!_uc_stripe_check_api_keys()) {
+    // Not clear that this is useful since payment config form forces at least some config
+    if (!_uc_stripe_check_api_keys($this->getConfiguration())) {
       \Drupal::logger('uc_stripe')->error('Stripe API keys are not configured. Payments cannot be made without them.', array());
       return FALSE;
     }

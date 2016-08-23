@@ -52,17 +52,12 @@ function uc_stripe_form_uc_cart_checkout_form_alter(&$form, FormState $form_stat
  * @return bool
  *   TRUE if all 4 keys have a value.
  */
-function _uc_stripe_check_api_keys() {
-
-  $config = \Drupal::config('uc_payment.method.striper');
-
-  return $config->get('settings.uc_stripe_api_key_live_publishable') &&
-    $config->get('settings.uc_stripe_api_key_live_secret') &&
-    $config->get('settings.uc_stripe_api_key_test_publishable') &&
-    $config->get('settings.uc_stripe_api_key_test_secret');
+function _uc_stripe_check_api_keys($configuration) {
+  return $configuration['uc_stripe_api_key_live_publishable'] &&
+    $configuration['uc_stripe_api_key_live_secret'] &&
+    $configuration['uc_stripe_api_key_test_publishable'] &&
+    $configuration['uc_stripe_api_key_test_secret'];
 }
-
-
 
 /**
  * Implements hook_uc_checkout_complete()
@@ -77,7 +72,7 @@ function uc_stripe_uc_checkout_complete($order, $account) {
   if ($order->payment_method == "credit") {
     // Pull the stripe customer ID from the temp storage.
     // It got there in uc_stripe_checkout_form_customsubmit()
-
+    // This is only really necessary to save for uc_recurring
     $stripe_customer_id = \Drupal::service('user.private_tempstore')->get('uc_stripe')->get('uc_stripe_customer_id');
 
     \Drupal::getContainer('user.data')->set('uc_stripe', $account->id(), 'uc_stripe_customer_id', $stripe_customer_id);
@@ -86,7 +81,7 @@ function uc_stripe_uc_checkout_complete($order, $account) {
 
 
 /**
- * TODO: Revisit this when uc_recurring is available.
+ * TODO: Revisit uc_recurring renewal when uc_recurring is available.
  *
  * Handle renewing a recurring fee, called by uc_recurring
  *
@@ -154,7 +149,7 @@ function uc_stripe_uc_checkout_complete($order, $account) {
 //}
 
 /**
- * TODO: Revisit this when uc_recurring is available
+ * TODO: Revisit stripe renewal processing when uc_recurring is available
  * UC Recurring: Process a new recurring fee.
  * This runs when subscriptions are "set up" for the first time.
  * There is no action to be taken here except returning TRUE because the customer
@@ -186,29 +181,5 @@ function uc_stripe_uc_checkout_complete($order, $account) {
 //  return TRUE;
 //}
 
-
-/**
- * Replace uc_credit's form themeing with our own - adds stripe_token.
- * @param $form
- * @return string
- */
-//function uc_stripe_uc_payment_method_credit_form($form) {
-//  $output = \Drupal::service("renderer")->render($form['stripe_nojs_warning']);
-//  $output .= \Drupal::service("renderer")->render($form['config_error']);
-//  // @FIXME
-//// theme() has been renamed to _theme() and should NEVER be called directly.
-//// Calling _theme() directly can alter the expected output and potentially
-//// introduce security issues (see https://www.drupal.org/node/2195739). You
-//// should use renderable arrays instead.
-////
-////
-//// @see https://www.drupal.org/node/2195739
-//// $output .= theme('uc_payment_method_credit_form',$form);
-//
-//  $output .= \Drupal::service("renderer")->render($form['stripe_token']);
-//  $output .= \Drupal::service("renderer")->render($form['dummy_image_load']);
-//
-//  return $output;
-//}
 
 
